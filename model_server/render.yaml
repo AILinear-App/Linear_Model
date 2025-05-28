@@ -2,8 +2,10 @@ services:
   - type: web
     name: cctv-ai-server
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
+    # 경로 수정: model_server 폴더 안의 파일들 사용
+    buildCommand: pip install -r model_server/requirements.txt
+    startCommand: python model_server/main.py
+    # 추가 환경 변수로 최적화
     envVars:
       - key: ENVIRONMENT
         value: production
@@ -11,4 +13,12 @@ services:
         fromService:
           type: web
           name: cctv-ai-server
-          property: port 
+          property: port
+      # Render 최적화를 위한 추가 환경 변수
+      - key: RENDER_MEMORY_LIMIT
+        value: "true"
+      - key: PYTHONPATH
+        value: "/opt/render/project/src"
+      # Python 버퍼링 비활성화 (로그 실시간 확인용)
+      - key: PYTHONUNBUFFERED
+        value: "1"
