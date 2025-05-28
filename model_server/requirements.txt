@@ -1,12 +1,30 @@
-# Render 배포용 안전한 requirements.txt
+# Render $7 플랜용 안전한 requirements.txt
+
+# 웹 프레임워크
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
-torch==2.1.0
-torchvision==0.16.0
+
+# PyTorch (CPU 전용)
+--index-url https://download.pytorch.org/whl/cpu
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu
+
+# AI 모델 라이브러리
 ultralytics==8.0.196
+clip-by-openai==1.0
+
+# 이미지/비디오 처리
 opencv-python-headless==4.8.1.78
-numpy==1.24.3
 pillow==10.0.1
+
+# 데이터 처리
+numpy==1.24.3
+pandas==2.0.3
+
+# MLflow (실험 관리) - 선택적
+mlflow==2.8.1
+
+# 기타 유틸리티
 requests==2.31.0
 tqdm==4.66.1
