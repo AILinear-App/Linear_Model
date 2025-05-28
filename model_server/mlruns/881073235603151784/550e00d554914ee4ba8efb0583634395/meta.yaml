@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/881073235603151784/550e00d554914ee4ba8efb0583634395/artifacts
+end_time: 1748439625863
+entry_point_name: ''
+experiment_id: '881073235603151784'
+lifecycle_stage: active
+run_id: 550e00d554914ee4ba8efb0583634395
+run_name: Search_The person wearing s
+run_uuid: 550e00d554914ee4ba8efb0583634395
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1748439625458
+status: 3
+tags: []
+user_id: '82103'
