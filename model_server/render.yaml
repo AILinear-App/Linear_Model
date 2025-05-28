@@ -11,4 +11,4 @@ services:
         fromService:
           type: web
           name: cctv-ai-server
-          property: port
+          property: port 
