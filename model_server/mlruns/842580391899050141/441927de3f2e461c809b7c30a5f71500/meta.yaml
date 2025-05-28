@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/842580391899050141/441927de3f2e461c809b7c30a5f71500/artifacts
+end_time: 1748407792105
+entry_point_name: ''
+experiment_id: '842580391899050141'
+lifecycle_stage: active
+run_id: 441927de3f2e461c809b7c30a5f71500
+run_name: Video_Analysis_2021-09-09_16-54-00_thu_sunny_out_ye-ma_CD0001.mp4_20250528_134915
+run_uuid: 441927de3f2e461c809b7c30a5f71500
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1748407755180
+status: 3
+tags: []
+user_id: '82103'
