@@ -1,31 +1,18 @@
-# Python 3.12 호환 requirements.txt
+# 의존성 충돌 없는 최소 requirements.txt
 
-# 웹 프레임워크
-fastapi==0.103.2
-uvicorn[standard]==0.23.2
-python-multipart==0.0.6
+# 웹 프레임워크 (유연한 버전)
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+python-multipart
 
-# PyTorch
-torch==2.1.0
-torchvision==0.16.0
+# PyTorch (기본 버전)
+torch
+torchvision
 
-# YOLO (Python 3.12 호환 버전)
-ultralytics==8.0.6
+# 기본 이미지 처리
+opencv-python-headless
+Pillow
+numpy
+requests
 
-# CLIP 대안 (Python 3.12 호환)
-clip-by-openai==1.1
-
-# 이미지/비디오 처리
-opencv-python-headless==4.8.1.78
-Pillow==10.0.1
-
-# 데이터 처리
-numpy==1.24.3
-pandas==2.0.3
-
-# MLflow (생략 - 호환성 문제 가능성)
-# mlflow==2.7.1
-
-# 기타
-requests==2.31.0
-tqdm==4.66.1
+# 아직 AI 모델들 제외 (일단 서버 띄우기 우선)
