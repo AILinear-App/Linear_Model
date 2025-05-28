@@ -35,9 +35,16 @@ app = FastAPI(
 )
 
 # CORS 설정 (Render 배포용)
+# CORS 설정 (Render 배포용) - 수정된 부분만
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Render에서는 일단 모든 도메인 허용
+    allow_origins=[
+        "https://ai-linear.vercel.app",  # 🆕 Vercel 프론트엔드 URL 추가
+        "https://ai-linear-parkmoonas-projects.vercel.app",  # 🆕 추가 Vercel 도메인
+        "http://localhost:3000",  # 로컬 개발용
+        "http://localhost:5173",  # Vite 개발 서버
+        "*"  # 임시로 모든 도메인 허용 (개발용)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,14 +65,14 @@ yolo_model = None
 clip_model = None
 clip_preprocess = None
 
-# Render 최적화 설정
+# Render 최적화 설정 - 사람 탐지 개선
 render_config = {
-    "yolo_confidence_threshold": 0.6,  # 높은 임계값으로 성능 절약
-    "yolo_model_size": "yolov8n",  # 가장 작은 모델
-    "max_frames_per_video": 10,  # 적은 프레임으로 메모리 절약
-    "min_person_size": 80,  # 큰 사이즈만 탐지
-    "search_similarity_threshold": 0.15,
-    "max_video_size_mb": 50  # 최대 비디오 크기 제한
+    "yolo_confidence_threshold": 0.3,  # 🔥 0.6 → 0.3 (더 민감하게)
+    "yolo_model_size": "yolov8n",  # 가장 작은 모델 유지
+    "max_frames_per_video": 20,        # 🔥 10 → 20 (더 많은 프레임)
+    "min_person_size": 30,             # 🔥 80 → 30 (작은 사람도 탐지)
+    "search_similarity_threshold": 0.1, # 🔥 0.15 → 0.1 (더 민감하게)
+    "max_video_size_mb": 50            # 최대 비디오 크기 제한 유지
 }
 
 # 요청/응답 모델
@@ -162,11 +169,11 @@ async def health_check():
         "memory_mode": "optimized" if MEMORY_LIMIT_MODE else "normal"
     }
 
-def detect_persons_in_video_optimized(video_path: Path, max_frames: int = 10):
-    """메모리 최적화된 사람 탐지"""
+def detect_persons_in_video_optimized(video_path: Path, max_frames: int = 20):
+    """개선된 사람 탐지 - 더 민감하게"""
     
     model = load_yolo_model()
-    print(f"🎬 비디오 분석 시작: {video_path.name}")
+    print(f"🎬 개선된 비디오 분석 시작: {video_path.name}")
     
     cap = cv2.VideoCapture(str(video_path))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -174,13 +181,15 @@ def detect_persons_in_video_optimized(video_path: Path, max_frames: int = 10):
     detected_persons = []
     frame_count = 0
     
-    # 프레임 간격을 더 크게
-    frame_interval = max(5, total_frames // max_frames)
+    # 🔥 프레임 간격을 더 작게 (더 많은 프레임 분석)
+    frame_interval = max(2, total_frames // max_frames)  # 최소 2프레임마다
     
     print(f"📊 총 프레임: {total_frames}, 분석할 프레임: {min(max_frames, total_frames // frame_interval)}")
+    print(f"🎯 탐지 임계값: {render_config['yolo_confidence_threshold']}")
+    print(f"📏 최소 사람 크기: {render_config['min_person_size']}px")
     
     try:
-        while len(detected_persons) < 20:  # 최대 20개로 제한
+        while len(detected_persons) < 30:  # 🔥 20 → 30개로 증가
             ret, frame = cap.read()
             if not ret:
                 break
@@ -190,53 +199,66 @@ def detect_persons_in_video_optimized(video_path: Path, max_frames: int = 10):
             if frame_count % frame_interval != 0:
                 continue
             
-            # 프레임 크기 줄이기 (메모리 절약)
+            # 프레임 크기는 유지 (너무 작게 하면 탐지 안됨)
             height, width = frame.shape[:2]
-            if width > 640:
-                scale = 640 / width
+            if width > 800:  # 🔥 640 → 800으로 증가
+                scale = 800 / width
                 new_width = int(width * scale)
                 new_height = int(height * scale)
                 frame = cv2.resize(frame, (new_width, new_height))
             
             try:
-                # YOLO 추론
-                results = model(frame, classes=[0], verbose=False)
+                # YOLO 추론 - 더 민감하게
+                results = model(frame, classes=[0], verbose=False, conf=render_config['yolo_confidence_threshold'])
                 
                 for r in results:
                     boxes = r.boxes
                     if boxes is not None:
+                        print(f"🔍 프레임 {frame_count}에서 {len(boxes)}개 객체 감지")
+                        
                         for box in boxes:
                             x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                             confidence = box.conf[0].cpu().numpy()
                             
-                            if confidence > render_config["yolo_confidence_threshold"]:
-                                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                            print(f"   📦 박스: ({x1:.0f},{y1:.0f},{x2:.0f},{y2:.0f}), 신뢰도: {confidence:.2f}")
+                            
+                            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                            
+                            width_box = x2 - x1
+                            height_box = y2 - y1
+                            
+                            print(f"   📐 박스 크기: {width_box}x{height_box}")
+                            
+                            # 🔥 크기 조건 완화
+                            if width_box > render_config["min_person_size"] and height_box > render_config["min_person_size"]:
+                                person_img = frame[y1:y2, x1:x2]
+                                person_pil = Image.fromarray(cv2.cvtColor(person_img, cv2.COLOR_BGR2RGB))
                                 
-                                if (x2 - x1) > render_config["min_person_size"] and (y2 - y1) > render_config["min_person_size"]:
-                                    person_img = frame[y1:y2, x1:x2]
-                                    person_pil = Image.fromarray(cv2.cvtColor(person_img, cv2.COLOR_BGR2RGB))
-                                    
-                                    # 이미지 크기 제한
-                                    if person_pil.size[0] > 300 or person_pil.size[1] > 300:
-                                        person_pil.thumbnail((300, 300), Image.Resampling.LANCZOS)
-                                    
-                                    filename = f"{video_path.stem}_f{frame_count}_p{len(detected_persons)}.jpg"
-                                    crop_path = CROP_DIR / filename
-                                    person_pil.save(crop_path, quality=85)  # 품질 조정
-                                    
-                                    detected_persons.append({
-                                        "파일경로": str(crop_path),
-                                        "프레임번호": frame_count,
-                                        "신뢰도": float(confidence),
-                                        "박스좌표": [x1, y1, x2, y2],
-                                        "이미지": person_pil
-                                    })
-                                    
-                                    print(f"✅ 사람 탐지: 프레임 {frame_count}, 신뢰도 {confidence:.2f}")
-                                    
-                                    # 메모리 정리
-                                    if len(detected_persons) % 5 == 0:
-                                        cleanup_memory()
+                                # 이미지 크기 제한 완화
+                                if person_pil.size[0] > 400 or person_pil.size[1] > 400:
+                                    person_pil.thumbnail((400, 400), Image.Resampling.LANCZOS)
+                                
+                                filename = f"{video_path.stem}_f{frame_count}_p{len(detected_persons)}.jpg"
+                                crop_path = CROP_DIR / filename
+                                person_pil.save(crop_path, quality=90)  # 🔥 85 → 90 품질 향상
+                                
+                                detected_persons.append({
+                                    "파일경로": str(crop_path),
+                                    "프레임번호": frame_count,
+                                    "신뢰도": float(confidence),
+                                    "박스좌표": [x1, y1, x2, y2],
+                                    "이미지": person_pil
+                                })
+                                
+                                print(f"✅ 사람 탐지 성공: 프레임 {frame_count}, 신뢰도 {confidence:.2f}")
+                            else:
+                                print(f"❌ 크기 부족: {width_box}x{height_box} < {render_config['min_person_size']}")
+                    else:
+                        print(f"🔍 프레임 {frame_count}에서 객체 없음")
+                        
+                # 메모리 정리는 더 자주
+                if frame_count % 5 == 0:
+                    cleanup_memory()
             
             except Exception as e:
                 print(f"⚠️ 프레임 {frame_count} 분석 실패: {e}")
