@@ -1,0 +1,28 @@
+# 환경변수
+.env
+.env.local
+.env.development
+
+# Node modules
+node_modules/
+
+# 빌드 결과물
+frontend/dist/
+frontend/build/
+
+# AI 모델 파일들 (용량 큰 것들)
+*.pt
+*.pth
+*.onnx
+
+# 업로드된 파일들
+model_server/cctv_data/
+/tmp/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

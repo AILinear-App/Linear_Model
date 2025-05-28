@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-const API_URL = 'http://localhost:8001';
+// 환경변수에서 API URL 가져오기
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001';
 
 function App() {
   // 기본 상태 관리
@@ -11,21 +12,21 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState('');
   const [serverStatus, setServerStatus] = useState('확인 중...');
   
-  // MLflow 관련 상태
-  const [mlflowInfo, setMlflowInfo] = useState({});
-  const [performanceStats, setPerformanceStats] = useState({});
+  // Render 최적화 상태
+  const [renderStats, setRenderStats] = useState({});
 
-  // 서버 상태 및 성능 통계 확인
+  // 서버 상태 확인
   useEffect(() => {
     checkServer();
-    fetchPerformanceStats();
+    fetchRenderStats();
   }, []);
 
   const checkServer = async () => {
     try {
       const response = await fetch(`${API_URL}/health`);
       if (response.ok) {
-        setServerStatus('✅ AI + MLflow 서버 연결됨');
+        const data = await response.json();
+        setServerStatus(`✅ Render AI 서버 연결됨 (${data.platform})`);
       } else {
         setServerStatus('❌ 서버 응답 없음');
       }
@@ -34,26 +35,32 @@ function App() {
     }
   };
 
-  // 성능 통계 가져오기
-  const fetchPerformanceStats = async () => {
+  // Render 통계 가져오기
+  const fetchRenderStats = async () => {
     try {
-      const response = await fetch(`${API_URL}/stats/performance`);
+      const response = await fetch(`${API_URL}/stats`);
       if (response.ok) {
         const data = await response.json();
-        setPerformanceStats(data);
+        setRenderStats(data);
       }
     } catch (error) {
-      console.log('성능 통계 가져오기 실패:', error);
+      console.log('통계 가져오기 실패:', error);
     }
   };
 
-  // 파일 업로드 (MLflow 추적 포함)
+  // 파일 업로드 (Render 최적화)
   const handleUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    // 파일 크기 체크 (50MB 제한)
+    if (file.size > 50 * 1024 * 1024) {
+      alert('파일 크기가 50MB를 초과합니다. Render 최적화를 위해 더 작은 파일을 선택해주세요.');
+      return;
+    }
+
     setLoading(true);
-    setUploadStatus('📤 MLflow 추적 업로드 중...');
+    setUploadStatus('📤 Render AI 서버에 업로드 중...');
 
     try {
       const formData = new FormData();
@@ -68,18 +75,11 @@ function App() {
         const result = await response.json();
         setUploadStatus(`✅ ${result.message}`);
         
-        // MLflow 정보 업데이트
-        if (result.mlflow_run_id) {
-          setMlflowInfo({
-            run_id: result.mlflow_run_id,
-            experiment_id: result.mlflow_experiment_id
-          });
-        }
-        
-        // 성능 통계 새로고침
-        fetchPerformanceStats();
+        // 통계 새로고침
+        fetchRenderStats();
       } else {
-        setUploadStatus('❌ 업로드 실패');
+        const error = await response.json();
+        setUploadStatus(`❌ 업로드 실패: ${error.detail}`);
       }
     } catch (error) {
       setUploadStatus(`❌ 오류: ${error.message}`);
@@ -88,7 +88,7 @@ function App() {
     }
   };
 
-  // 검색 실행 (MLflow 추적 포함)
+  // 검색 실행 (Render 최적화)
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       alert('검색어를 입력하세요!');
@@ -105,7 +105,7 @@ function App() {
         },
         body: JSON.stringify({
           query: searchQuery,
-          k: 5
+          k: 3  // Render 최적화를 위해 3개로 제한
         }),
       });
 
@@ -113,10 +113,11 @@ function App() {
         const results = await response.json();
         setSearchResults(results);
         
-        // 검색 후 성능 통계 업데이트
-        fetchPerformanceStats();
+        // 검색 후 통계 업데이트
+        fetchRenderStats();
       } else {
-        alert('검색 실패');
+        const error = await response.json();
+        alert(`검색 실패: ${error.detail}`);
         setSearchResults([]);
       }
     } catch (error) {
@@ -145,7 +146,7 @@ function App() {
           fontSize: '2.5em',
           textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
         }}>
-          🤖 AI 수사 시스템 + MLflow
+          🚀 Render AI 수사 시스템
         </h1>
         <p style={{ 
           margin: 0, 
@@ -154,13 +155,20 @@ function App() {
         }}>
           서버 상태: {serverStatus}
         </p>
+        <p style={{ 
+          margin: '10px 0 0 0', 
+          fontSize: '1em',
+          opacity: 0.8
+        }}>
+          💪 7달러로 클라우드 AI 서버 구축 성공!
+        </p>
       </div>
 
-      {/* MLflow 대시보드 섹션 */}
+      {/* Render 대시보드 섹션 */}
       <div style={{ 
         marginBottom: '40px', 
         padding: '40px', 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%)',
         borderRadius: '15px',
         color: 'white'
       }}>
@@ -176,10 +184,10 @@ function App() {
             marginRight: '15px',
             fontSize: '24px'
           }}>
-            📊
+            🔥
           </div>
           <h2 style={{ margin: 0, color: 'white', fontSize: '1.8em' }}>
-            MLflow 실험 관리 대시보드
+            Render 클라우드 AI 대시보드
           </h2>
         </div>
         
@@ -189,46 +197,22 @@ function App() {
           gap: '20px',
           marginBottom: '25px'
         }}>
-          {/* 현재 실험 정보 */}
+          {/* 서버 상태 */}
           <div style={{
             background: 'rgba(255,255,255,0.1)',
             padding: '20px',
             borderRadius: '10px',
             backdropFilter: 'blur(10px)'
           }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>🔬 현재 실험</h4>
-            {mlflowInfo.run_id ? (
-              <div>
-                <p style={{ margin: '5px 0', fontSize: '14px' }}>
-                  Run ID: {mlflowInfo.run_id.substring(0, 8)}...
-                </p>
-                <p style={{ margin: '5px 0', fontSize: '14px' }}>
-                  Experiment: {mlflowInfo.experiment_id}
-                </p>
-              </div>
-            ) : (
-              <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>
-                영상을 업로드하면 MLflow 실험이 시작됩니다
-              </p>
-            )}
-          </div>
-          
-          {/* 처리 통계 */}
-          <div style={{
-            background: 'rgba(255,255,255,0.1)',
-            padding: '20px',
-            borderRadius: '10px',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>📈 처리 통계</h4>
+            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>🌐 서버 상태</h4>
             <p style={{ margin: '5px 0', fontSize: '14px' }}>
-              처리된 영상: {performanceStats.전체_성능?.total_videos_processed || 0}개
+              플랫폼: {renderStats.플랫폼 || 'Render'}
             </p>
             <p style={{ margin: '5px 0', fontSize: '14px' }}>
-              탐지된 인물: {performanceStats.전체_성능?.total_persons_detected || 0}명
+              메모리 모드: {renderStats.메모리_모드 || '최적화됨'}
             </p>
             <p style={{ margin: '5px 0', fontSize: '14px' }}>
-              평균 신뢰도: {(performanceStats.전체_성능?.average_detection_confidence * 100 || 0).toFixed(1)}%
+              분석된 데이터: {renderStats.분석된_데이터 || 0}개
             </p>
           </div>
           
@@ -241,43 +225,44 @@ function App() {
           }}>
             <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>🤖 AI 모델 상태</h4>
             <p style={{ margin: '5px 0', fontSize: '14px' }}>
-              YOLO: {performanceStats.시스템_상태?.YOLO_로딩됨 ? '✅ 로딩됨' : '❌ 실패'}
+              YOLO: {renderStats.모델_로딩?.YOLO ? '✅ 로딩됨' : '⏳ 대기중'}
             </p>
             <p style={{ margin: '5px 0', fontSize: '14px' }}>
-              CLIP: {performanceStats.시스템_상태?.CLIP_로딩됨 ? '✅ 로딩됨' : '❌ 실패'}
+              CLIP: {renderStats.모델_로딩?.CLIP ? '✅ 로딩됨' : '⏳ 대기중'}
             </p>
             <p style={{ margin: '5px 0', fontSize: '14px' }}>
-              디바이스: {performanceStats.시스템_상태?.디바이스 || 'CPU'}
+              디바이스: CPU (Render 최적화)
+            </p>
+          </div>
+          
+          {/* 최적화 설정 */}
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            padding: '20px',
+            borderRadius: '10px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>⚡ 최적화 설정</h4>
+            <p style={{ margin: '5px 0', fontSize: '14px' }}>
+              최대 파일크기: 50MB
+            </p>
+            <p style={{ margin: '5px 0', fontSize: '14px' }}>
+              최대 프레임: 10개
+            </p>
+            <p style={{ margin: '5px 0', fontSize: '14px' }}>
+              검색 결과: 3개
             </p>
           </div>
         </div>
         
-        {/* MLflow UI 링크 */}
-        <div style={{ textAlign: 'center' }}>
-          <a
-            href="http://localhost:5000"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '12px 24px',
-              background: 'rgba(255,255,255,0.2)',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '600',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            🔗 MLflow UI에서 상세 실험 결과 보기
-          </a>
-          <p style={{ margin: '10px 0 0 0', fontSize: '14px', opacity: 0.8 }}>
-            모든 실험이 자동으로 추적되고 있습니다
-          </p>
-        </div>
+        {/* 마지막 분석 정보 */}
+        {renderStats.마지막_분석 && (
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <p style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>
+              🕒 마지막 분석: {new Date(renderStats.마지막_분석).toLocaleString('ko-KR')}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 업로드 섹션 */}
@@ -304,8 +289,20 @@ function App() {
             📹
           </div>
           <h2 style={{ margin: 0, color: '#333', fontSize: '1.8em' }}>
-            CCTV 영상 업로드 (MLflow 추적)
+            CCTV 영상 업로드 (Render AI 분석)
           </h2>
+        </div>
+        
+        <div style={{ 
+          background: '#fff3cd', 
+          border: '1px solid #ffeaa7', 
+          borderRadius: '8px', 
+          padding: '15px', 
+          marginBottom: '20px',
+          fontSize: '14px',
+          color: '#856404'
+        }}>
+          ⚠️ <strong>Render 최적화 안내:</strong> 파일 크기는 50MB 이하, 첫 분석 시 모델 로딩으로 1-2분 소요될 수 있습니다.
         </div>
         
         <label style={{
@@ -322,7 +319,7 @@ function App() {
           transition: 'all 0.3s ease',
           boxShadow: '0 4px 15px rgba(0,123,255,0.3)'
         }}>
-          📤 영상 파일 선택 (AI 분석 + MLflow 기록)
+          📤 영상 파일 선택 (최대 50MB)
           <input
             type="file"
             accept="video/*"
@@ -341,11 +338,6 @@ function App() {
             border: '1px solid #e9ecef'
           }}>
             {uploadStatus}
-            {mlflowInfo.run_id && (
-              <p style={{ margin: '10px 0 0 0', fontSize: '14px', color: '#666' }}>
-                🔬 MLflow Run ID: {mlflowInfo.run_id.substring(0, 8)}...
-              </p>
-            )}
           </div>
         )}
       </div>
@@ -374,7 +366,7 @@ function App() {
             🔍
           </div>
           <h2 style={{ margin: 0, color: '#333', fontSize: '1.8em' }}>
-            AI 인물 검색 (CLIP + MLflow)
+            AI 인물 검색 (Render CLIP)
           </h2>
         </div>
         
@@ -422,7 +414,7 @@ function App() {
         {searchResults.length > 0 && (
           <div style={{ marginTop: '30px' }}>
             <h3 style={{ color: '#333', fontSize: '1.4em', marginBottom: '20px' }}>
-              🎯 검색 결과 ({searchResults.length}개) - MLflow에 기록됨
+              🎯 검색 결과 ({searchResults.length}개) - Render AI 분석
             </h3>
             <div style={{ 
               display: 'grid', 
@@ -459,7 +451,7 @@ function App() {
                       justifyContent: 'center',
                       color: '#666'
                     }}>
-                      📷 실제 AI 탐지 이미지
+                      📷 Render AI 탐지 이미지
                     </div>
                   )}
                   
@@ -520,23 +512,23 @@ function App() {
           fontSize: '1.5em',
           marginBottom: '20px'
         }}>
-          📝 MLflow 통합 AI 시스템 사용법
+          🚀 Render 클라우드 AI 시스템 사용법
         </h3>
         <div style={{ fontSize: '16px', lineHeight: '1.8' }}>
           <div style={{ marginBottom: '12px' }}>
-            <strong>1.</strong> 영상을 업로드하면 MLflow가 자동으로 실험을 추적합니다
+            <strong>1.</strong> 50MB 이하의 영상을 업로드하세요 (Render 최적화)
           </div>
           <div style={{ marginBottom: '12px' }}>
-            <strong>2.</strong> YOLO AI가 사람을 탐지하고 모든 성능 데이터를 기록합니다
+            <strong>2.</strong> 첫 분석 시 AI 모델 로딩으로 1-2분 소요됩니다
           </div>
           <div style={{ marginBottom: '12px' }}>
-            <strong>3.</strong> 영어로 검색하면 CLIP AI가 유사한 사람을 찾습니다
+            <strong>3.</strong> YOLO AI가 사람을 탐지하고 CLIP AI가 분석합니다
           </div>
           <div style={{ marginBottom: '12px' }}>
-            <strong>4.</strong> MLflow UI에서 모든 실험 결과와 성능을 확인하세요
+            <strong>4.</strong> 영어로 검색하면 유사한 사람을 찾아줍니다
           </div>
           <div>
-            <strong>5.</strong> 모든 과정이 전문적으로 관리되고 재현 가능합니다
+            <strong>5.</strong> 모든 처리가 클라우드에서 실행됩니다 (7달러의 가치!)
           </div>
         </div>
       </div>
@@ -578,7 +570,14 @@ function App() {
               color: '#333',
               fontWeight: '600'
             }}>
-              🤖 AI 분석 중... MLflow 기록 중...
+              🚀 Render AI 분석 중...
+            </p>
+            <p style={{ 
+              margin: '10px 0 0 0', 
+              fontSize: '14px',
+              color: '#666'
+            }}>
+              클라우드에서 AI 모델이 열심히 작업 중입니다
             </p>
           </div>
         </div>

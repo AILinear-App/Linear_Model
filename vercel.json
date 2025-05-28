@@ -1,0 +1,9 @@
+{
+  "name": "cctv-ai-frontend",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
